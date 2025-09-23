@@ -1,2 +1,8 @@
-// See the Electron documentation for details on how to use preload scripts:
-// https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
+import { contextBridge, ipcRenderer } from "electron";
+import { SonarQubeSetup } from "./types";
+
+contextBridge.exposeInMainWorld("electronAPI", {
+  listProjects: () => ipcRenderer.invoke("sonarqube:list-projects"),
+  updateSonarQubeConfig: (setup: SonarQubeSetup) =>
+    ipcRenderer.send("sonarqube:update-config", setup),
+});

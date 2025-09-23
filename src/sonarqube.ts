@@ -4,22 +4,21 @@ import {
   PaginationParams,
   SonarQubeProjectsResult,
 } from "./types";
-import { SonarQubeClient as WebApiClient } from "sonarqube-web-api-client";
+const { SonarQubeClient: WebApiClient } = require("sonarqube-web-api-client");
 
 const DEFAULT_SONARQUBE_URL = "https://sonarcloud.io";
 type OptionalOrganization = string | null;
 
-
 export class SonarQubeClient implements ISonarQubeClient {
-  private readonly webApiClient: WebApiClient;
+  private readonly webApiClient: typeof WebApiClient;
   private readonly organization: OptionalOrganization;
 
   // Domain modules
   private readonly projectsDomain: ProjectsDomain;
 
   constructor(
-    token: string,
     baseUrl = DEFAULT_SONARQUBE_URL,
+    token: string,
     organization?: OptionalOrganization
   ) {
     this.webApiClient = WebApiClient.withToken(
