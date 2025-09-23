@@ -14,6 +14,34 @@ export type SonarQubeSetup = {
   sonarqubeOrganization?: string;
 };
 
+export type {
+  SonarQubeIssue,
+  SonarQubeIssueComment,
+  SonarQubeIssueFlow,
+  SonarQubeIssueImpact,
+  SonarQubeIssueLocation,
+  SonarQubeMessageFormatting,
+  SonarQubeTextRange,
+  SonarQubeComponent,
+  SonarQubeRule,
+  SonarQubeUser,
+  SonarQubeFacet,
+  SonarQubeFacetValue,
+  SonarQubeIssuesResult,
+  IssuesParams,
+  MarkIssueFalsePositiveParams,
+  MarkIssueWontFixParams,
+  BulkIssueMarkParams,
+  AddCommentToIssueParams,
+  AssignIssueParams,
+  ConfirmIssueParams,
+  UnconfirmIssueParams,
+  ResolveIssueParams,
+  ReopenIssueParams,
+  DoTransitionRequest,
+  DoTransitionResponse,
+} from "./issues.js";
+
 // Client interface
 export interface ISonarQubeClient {
   listProjects(params?: PaginationParams): Promise<SonarQubeProjectsResult>;
