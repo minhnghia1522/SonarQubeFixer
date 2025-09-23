@@ -50,6 +50,7 @@
     "@emotion/styled": "^11.14.1",
     "@fontsource/roboto": "^5.2.8",
     "@hookform/resolvers": "^5.2.2",
+    "@mui/icons-material": "^7.3.2",
     "@mui/material": "^7.3.2",
     "@mui/styled-engine-sc": "^7.3.2",
     "@tanstack/react-router": "^1.131.50",

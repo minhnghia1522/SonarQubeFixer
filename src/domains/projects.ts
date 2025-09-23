@@ -20,7 +20,6 @@ export class ProjectsDomain extends BaseDomain {
 
       const response = await builder.execute();
 
-      // Transform to our interface
       return {
         projects: response.components.map((component) => ({
           key: component.key,

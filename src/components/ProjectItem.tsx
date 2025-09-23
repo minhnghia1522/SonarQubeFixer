@@ -36,11 +36,9 @@ const Rating = ({ rating, value }: { rating: string; value: string }) => {
 };
 
 export const ProjectItem: React.FC<ProjectItemProps> = ({ project }) => {
-  // Dữ liệu giả lập vì API hiện tại chưa cung cấp đủ
-  const lastAnalysis = "3 months ago";
-  const linesOfCode = "6.6k";
-  const languages = "TypeScript, CSS, ...";
-  const status = "Failed";
+  const lastAnalysis = project.lastAnalysisDate
+    ? new Date(project.lastAnalysisDate).toLocaleDateString()
+    : "N/A";
 
   const metrics = {
     security: { rating: "A", value: "0" },
@@ -59,7 +57,11 @@ export const ProjectItem: React.FC<ProjectItemProps> = ({ project }) => {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             {project.name}
           </Typography>
-          <Chip label="PUBLIC" size="small" sx={{ mr: 2 }} />
+          <Chip
+            label={project.visibility.toUpperCase()}
+            size="small"
+            sx={{ mr: 2 }}
+          />
           <Chip
             label={status}
             color={status === "Failed" ? "error" : "success"}
@@ -69,13 +71,12 @@ export const ProjectItem: React.FC<ProjectItemProps> = ({ project }) => {
         </Box>
 
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Last analysis: {lastAnalysis} &middot; {linesOfCode} Lines of Code
-          &middot; {languages}
+          Last analysis: {lastAnalysis}
         </Typography>
 
         <Box sx={{ borderTop: 1, borderColor: "divider", pt: 2 }}>
           <Grid container spacing={2}>
-            <Grid item xs={2}>
+            <Grid size={2}>
               <Typography variant="body2" color="text.secondary">
                 Security
               </Typography>
@@ -84,10 +85,12 @@ export const ProjectItem: React.FC<ProjectItemProps> = ({ project }) => {
                   rating={metrics.security.rating}
                   value={metrics.security.value}
                 />
-                <Typography variant="body2">{metrics.security.value}</Typography>
+                <Typography variant="body2">
+                  {metrics.security.value}
+                </Typography>
               </Box>
             </Grid>
-            <Grid item xs={2}>
+            <Grid size={2}>
               <Typography variant="body2" color="text.secondary">
                 Reliability
               </Typography>
@@ -101,7 +104,7 @@ export const ProjectItem: React.FC<ProjectItemProps> = ({ project }) => {
                 </Typography>
               </Box>
             </Grid>
-            <Grid item xs={2}>
+            <Grid size={2}>
               <Typography variant="body2" color="text.secondary">
                 Maintainability
               </Typography>
@@ -115,7 +118,7 @@ export const ProjectItem: React.FC<ProjectItemProps> = ({ project }) => {
                 </Typography>
               </Box>
             </Grid>
-            <Grid item xs={2}>
+            <Grid size={2}>
               <Typography variant="body2" color="text.secondary">
                 Hotspots Reviewed
               </Typography>
@@ -124,16 +127,18 @@ export const ProjectItem: React.FC<ProjectItemProps> = ({ project }) => {
                   rating={metrics.hotspots.rating}
                   value={metrics.hotspots.value}
                 />
-                <Typography variant="body2">{metrics.hotspots.value}</Typography>
+                <Typography variant="body2">
+                  {metrics.hotspots.value}
+                </Typography>
               </Box>
             </Grid>
-            <Grid item xs={2}>
+            <Grid size={2}>
               <Typography variant="body2" color="text.secondary">
                 Coverage
               </Typography>
               <Typography variant="body2">{metrics.coverage.value}</Typography>
             </Grid>
-            <Grid item xs={2}>
+            <Grid size={2}>
               <Typography variant="body2" color="text.secondary">
                 Duplications
               </Typography>

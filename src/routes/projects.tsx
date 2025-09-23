@@ -4,14 +4,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import {
   Box,
-  Button,
   CircularProgress,
   List,
-  ListItem,
-  ListItemText,
   Paper,
   Typography,
 } from "@mui/material";
+import { ProjectItem } from "../components/ProjectItem";
 
 export const Route = createFileRoute()({
   component: ProjectsPage,
@@ -28,6 +26,7 @@ function ProjectsPage() {
     setError(null);
     try {
       const result = await window.electronAPI.listProjects({});
+      console.log("Fetched projects:", result);
       setProjects(result.projects);
     } catch (err) {
       if (err instanceof Error) {
@@ -66,12 +65,7 @@ function ProjectsPage() {
         <Paper>
           <List>
             {projects.map((project) => (
-              <ListItem key={project.key} divider>
-                <ListItemText
-                  primary={project.name}
-                  secondary={project.key}
-                />
-              </ListItem>
+              <ProjectItem key={project.key} project={project} />
             ))}
           </List>
         </Paper>
