@@ -5,6 +5,7 @@ import { useForm, FormProvider, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import FormTextField from "../components/form-control/FormTextField";
+import { useSnackbar } from "../contexts/SnackbarContext";
 
 export const Route = createFileRoute("/setup")({
   component: SetupPage,
@@ -13,21 +14,38 @@ export const Route = createFileRoute("/setup")({
 const validationSchema = z.object({
   sonarqubeUrl: z.string().url("Invalid URL format."),
   sonarqubeToken: z.string().min(1, "SonarQube Token is required."),
-  sonarqubeOrganization: z
-    .string()
-    .min(1, "SonarQube Organization is required."),
+  sonarqubeOrganization: z.string().optional(),
 });
 
 type ValidationSchema = z.infer<typeof validationSchema>;
 
 function SetupPage() {
+  const { showSnackbar } = useSnackbar();
+
   const methods = useForm<ValidationSchema>({
     resolver: zodResolver(validationSchema),
+    defaultValues: {
+      sonarqubeUrl: localStorage.getItem("sonarqubeUrl") || "",
+      sonarqubeToken: localStorage.getItem("sonarqubeToken") || "",
+      sonarqubeOrganization:
+        localStorage.getItem("sonarqubeOrganization") || "",
+    },
   });
 
   const onSubmit: SubmitHandler<ValidationSchema> = (data) => {
-    console.log("Form is valid:", data);
-    // Handle form submission logic here
+    try {
+      Object.entries(data).forEach(([key, value]) => {
+        const toStore =
+          typeof value === "object" && value !== null
+            ? JSON.stringify(value)
+            : String(value);
+        localStorage.setItem(key, toStore);
+      });
+      showSnackbar("Lưu cài đặt thành công!");
+    } catch (err) {
+      console.error(`Error saving to localStorage:`, err);
+      showSnackbar("Lưu cài đặt thất bại!", "error");
+    }
   };
 
   return (
@@ -51,7 +69,6 @@ function SetupPage() {
               label="SonarQube URL"
               name="sonarqubeUrl"
               autoComplete="url"
-              autoFocus
             />
             <FormTextField
               margin="normal"
@@ -65,7 +82,6 @@ function SetupPage() {
             />
             <FormTextField
               margin="normal"
-              required
               fullWidth
               name="sonarqubeOrganization"
               label="SonarQube Organization"
