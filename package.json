@@ -9,7 +9,7 @@
     "watch-routes": "tsr watch",
     "start": "electron-forge start",
     "package": "electron-forge package",
-    "make": "electron-forge make",
+    "make": "tsr generate && electron-forge make",
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx ."
   },
@@ -46,6 +46,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@fontsource/roboto": "^5.2.8",
+    "@hookform/resolvers": "^5.2.2",
     "@mui/material": "^7.3.2",
     "@mui/styled-engine-sc": "^7.3.2",
     "@tanstack/react-router": "^1.131.50",
@@ -53,6 +54,8 @@
     "electron-squirrel-startup": "^1.0.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "styled-components": "^6.1.19"
+    "react-hook-form": "^7.63.0",
+    "styled-components": "^6.1.19",
+    "zod": "^4.1.11"
   }
 }

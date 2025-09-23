@@ -1,0 +1,3 @@
+# MCP UI Development Guidelines:
+- When building user interfaces, strictly utilize the MUI UI component library to ensure consistency and adherence to design standards. All UI components and elements must be implemented using MUI’s official components and patterns. Additionally, integrate and interact with the MCP server using the "mui-mcp" library, following the official documentation for proper usage, API calls, and best practices. Ensure that all code is maintainable, scalable, and aligns with both MUI and MCP server guidelines.
+- Always validate with zod
