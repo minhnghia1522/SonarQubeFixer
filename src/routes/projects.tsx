@@ -1,3 +1,4 @@
+import { useSnackbar } from "../contexts/SnackbarContext";
 import { SonarQubeProject } from "../types";
 import { getSonarQubeSetup } from "../utils/setupUtil";
 import { createFileRoute } from "@tanstack/react-router";
@@ -11,6 +12,7 @@ function ProjectsPage() {
   const [projects, setProjects] = useState<SonarQubeProject[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { showSnackbar } = useSnackbar();
 
   useEffect(() => {
     // Send the setup to the main process as soon as the component mounts
@@ -25,10 +27,14 @@ function ProjectsPage() {
     setLoading(true);
     setError(null);
     try {
-      const result = await window.electronAPI.listProjects();
+      const result = await window.electronAPI.listProjects({});
       setProjects(result.projects);
     } catch (err) {
       if (err instanceof Error) {
+        if (err.message.includes("Insufficient privileges")) {
+          showSnackbar("Token không có quyền lấy danh sách project!", "error");
+        }
+        console.log("Error fetching projects:", err);
         setError(err.message);
       } else {
         setError("An unknown error occurred.");
