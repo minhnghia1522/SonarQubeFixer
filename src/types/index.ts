@@ -11,7 +11,7 @@ export type { SonarQubeProject, SonarQubeProjectsResult } from "./projects.js";
 export type SonarQubeSetup = {
   sonarqubeUrl: string;
   sonarqubeToken: string;
-  sonarqubeOrganization: string;
+  sonarqubeOrganization?: string;
 };
 
 // Client interface

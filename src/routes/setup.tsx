@@ -41,6 +41,7 @@ function SetupPage() {
             : String(value);
         localStorage.setItem(key, toStore);
       });
+      window.electronAPI.updateSonarQubeConfig(data);
       showSnackbar("Lưu cài đặt thành công!");
     } catch (err) {
       console.error(`Error saving to localStorage:`, err);

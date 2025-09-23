@@ -1,8 +1,17 @@
 import { useSnackbar } from "../contexts/SnackbarContext";
 import { SonarQubeProject } from "../types";
-import { getSonarQubeSetup } from "../utils/setupUtil";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
+import {
+  Box,
+  Button,
+  CircularProgress,
+  List,
+  ListItem,
+  ListItemText,
+  Paper,
+  Typography,
+} from "@mui/material";
 
 export const Route = createFileRoute()({
   component: ProjectsPage,
@@ -13,15 +22,6 @@ function ProjectsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { showSnackbar } = useSnackbar();
-
-  useEffect(() => {
-    // Send the setup to the main process as soon as the component mounts
-    // and every time the setup might change.
-    const setup = getSonarQubeSetup();
-    if (setup.sonarqubeToken) {
-      window.electronAPI.updateSonarQubeConfig(setup);
-    }
-  }, []);
 
   const handleFetchProjects = async () => {
     setLoading(true);
@@ -44,23 +44,38 @@ function ProjectsPage() {
     }
   };
 
+  useEffect(() => {
+    handleFetchProjects();
+  }, []);
+
   return (
-    <div>
-      <h1>Projects Page</h1>
-      <p>This is the Projects page.</p>
-      <button onClick={handleFetchProjects} disabled={loading}>
-        {loading ? "Loading..." : "Fetch Projects"}
-      </button>
+    <Box sx={{ p: 2 }}>
+      <Typography variant="h4" gutterBottom>
+        Projects
+      </Typography>
 
-      {error && <p style={{ color: "red" }}>Error: {error}</p>}
+      {loading && <CircularProgress />}
 
-      <ul>
-        {projects.map((project) => (
-          <li key={project.key}>
-            {project.name} ({project.key})
-          </li>
-        ))}
-      </ul>
-    </div>
+      {error && (
+        <Typography color="error">
+          Error: {error}. Please check your token and permissions.
+        </Typography>
+      )}
+
+      {!loading && !error && (
+        <Paper>
+          <List>
+            {projects.map((project) => (
+              <ListItem key={project.key} divider>
+                <ListItemText
+                  primary={project.name}
+                  secondary={project.key}
+                />
+              </ListItem>
+            ))}
+          </List>
+        </Paper>
+      )}
+    </Box>
   );
 }
