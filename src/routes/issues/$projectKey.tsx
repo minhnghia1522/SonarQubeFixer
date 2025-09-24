@@ -42,21 +42,29 @@ type GroupedIssues = {
 };
 
 const STATUS_OPTIONS = ["OPEN", "CONFIRMED", "REOPENED", "RESOLVED", "CLOSED"];
+const TYPE_OPTIONS = [
+  "BUG",
+  "VULNERABILITY",
+  "CODE_SMELL",
+] as const;
 
 function ProjectIssues() {
   const { projectKey } = Route.useParams();
 
-  console.log("Project Key:", projectKey);
   const [issues, setIssues] = useState<SonarQubeIssue[]>([]);
   const [components, setComponents] = useState<SonarQubeComponent[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
   const [severity, setSeverity] = useState("");
-  const [type, setType] = useState<IssuesParams["types"]>(["BUG"]);
+  const [type, setType] = useState<IssuesParams["types"]>([
+    "BUG",
+    "VULNERABILITY",
+    "CODE_SMELL",
+  ]);
   const [statuses, setStatuses] = useState<IssuesParams["issueStatuses"]>([
     "OPEN",
     "CONFIRMED",
@@ -181,20 +189,25 @@ function ProjectIssues() {
               </Select>
             </FormControl>
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <FormControl fullWidth size="small">
               <InputLabel>Type</InputLabel>
               <Select
+                multiple
                 value={type}
                 onChange={(e) =>
                   setType(e.target.value as IssuesParams["types"])
                 }
                 onBlur={handleFilterChange}
                 label="Type"
+                renderValue={(selected) => selected.join(", ")}
               >
-                <MenuItem value="BUG">Bug</MenuItem>
-                <MenuItem value="VULNERABILITY">Vulnerability</MenuItem>
-                <MenuItem value="CODE_SMELL">Code Smell</MenuItem>
+                {TYPE_OPTIONS.map((t) => (
+                  <MenuItem key={t} value={t}>
+                    <Checkbox checked={(type || []).indexOf(t) > -1} />
+                    <ListItemText primary={t} />
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Grid>
@@ -289,8 +302,8 @@ function ProjectIssues() {
               </Accordion>
             ))
           )}
-          {/* <TablePagination
-            rowsPerPageOptions={[10, 25, 50]}
+          <TablePagination
+            rowsPerPageOptions={[10, 25, 50, 100, 200, 500]}
             component="div"
             count={total}
             rowsPerPage={rowsPerPage}
@@ -300,7 +313,7 @@ function ProjectIssues() {
               setRowsPerPage(parseInt(e.target.value, 10));
               setPage(0);
             }}
-          /> */}
+          />
         </Paper>
       )}
     </Box>
