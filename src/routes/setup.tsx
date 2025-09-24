@@ -1,6 +1,15 @@
 import React from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Box, Button, Typography, Container, Paper } from "@mui/material";
+import {
+  Box,
+  Button,
+  Typography,
+  Container,
+  Paper,
+  InputAdornment,
+  IconButton,
+} from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useForm, FormProvider, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -15,12 +24,15 @@ const validationSchema = z.object({
   sonarqubeUrl: z.string().url("Invalid URL format."),
   sonarqubeToken: z.string().min(1, "SonarQube Token is required."),
   sonarqubeOrganization: z.string().optional(),
+  openaiApiKey: z.string().optional(),
 });
 
 type ValidationSchema = z.infer<typeof validationSchema>;
 
 function SetupPage() {
   const { showSnackbar } = useSnackbar();
+  const [showOpenaiApiKey, setShowOpenaiApiKey] = React.useState(false);
+  const [showSonarqubeToken, setShowSonarqubeToken] = React.useState(false);
 
   const methods = useForm<ValidationSchema>({
     resolver: zodResolver(validationSchema),
@@ -29,6 +41,7 @@ function SetupPage() {
       sonarqubeToken: localStorage.getItem("sonarqubeToken") || "",
       sonarqubeOrganization:
         localStorage.getItem("sonarqubeOrganization") || "",
+      openaiApiKey: localStorage.getItem("openaiApiKey") || "",
     },
   });
 
@@ -77,9 +90,23 @@ function SetupPage() {
               fullWidth
               name="sonarqubeToken"
               label="SonarQube Token"
-              type="password"
+              type={showSonarqubeToken ? "text" : "password"}
               id="sonarqubeToken"
               autoComplete="current-password"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle sonarqube token visibility"
+                      onClick={() => setShowSonarqubeToken(!showSonarqubeToken)}
+                      onMouseDown={(event) => event.preventDefault()}
+                      edge="end"
+                    >
+                      {showSonarqubeToken ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
             <FormTextField
               margin="normal"
@@ -87,6 +114,28 @@ function SetupPage() {
               name="sonarqubeOrganization"
               label="SonarQube Organization"
               id="sonarqubeOrganization"
+            />
+            <FormTextField
+              margin="normal"
+              fullWidth
+              name="openaiApiKey"
+              label="OpenAI API Key"
+              type={showOpenaiApiKey ? "text" : "password"}
+              id="openaiApiKey"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle openai api key visibility"
+                      onClick={() => setShowOpenaiApiKey(!showOpenaiApiKey)}
+                      onMouseDown={(event) => event.preventDefault()}
+                      edge="end"
+                    >
+                      {showOpenaiApiKey ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
             <Button
               type="submit"

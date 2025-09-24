@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Box,
+  Button,
   CircularProgress,
   Paper,
   Table,
@@ -152,6 +153,20 @@ function ProjectIssues() {
     );
   };
 
+  const handleFixIssue = async (issueKey: string) => {
+    try {
+      const result = await window.electronAPI.fixIssue(issueKey);
+      showSnackbar(result, "success");
+    } catch (err) {
+      if (err instanceof Error) {
+        showSnackbar(`Error fixing issue: ${err.message}`, "error");
+        setError(err.message);
+      } else {
+        setError("An unknown error occurred while fixing issue.");
+      }
+    }
+  };
+
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="h4" gutterBottom>
@@ -291,7 +306,13 @@ function ProjectIssues() {
                             <TableCell>{issue.line}</TableCell>
                             <TableCell>{issue.status}</TableCell>
                             <TableCell>
-                              {/* Action buttons go here */}
+                              <Button
+                                variant="contained"
+                                size="small"
+                                onClick={() => handleFixIssue(issue.key)}
+                              >
+                                Fix issue
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}

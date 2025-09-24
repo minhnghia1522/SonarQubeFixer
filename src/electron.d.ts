@@ -6,6 +6,7 @@ import {
 
 export interface IElectronAPI extends ISonarQubeClient {
   updateSonarQubeConfig: (setup: SonarQubeSetup) => void;
+  fixIssue: (issueKey: string) => Promise<string>;
 }
 
 declare global {

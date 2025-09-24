@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain } from "electron";
 import path from "node:path";
+import { spawn } from "node:child_process";
 import started from "electron-squirrel-startup";
 import store from "./storage/store";
 import { IssuesParams, SonarQubeSetup } from "./types";
@@ -42,6 +43,43 @@ ipcMain.handle("sonarqube:list-issues", async (_, params: IssuesParams) => {
   );
 
   return await client.listIssues(params);
+});
+
+ipcMain.handle("fix-issue", async (_, issueKey: string) => {
+  console.log(`Fixing issue: ${issueKey}`);
+  return new Promise((resolve, reject) => {
+    const command = "codex";
+    const args = [
+      "exec",
+      "--yolo",
+      "--model",
+      "gpt-4.1",
+      '"What time UTC is it now in Vietnam?"',
+      "--skip-git-repo-check",
+    ];
+    console.log(`Executing command: ${command} ${args.join(" ")}`);
+    const process = spawn(command, args, {
+      shell: true,
+    });
+    let result = "";
+    process.stdout.on("data", (data) => {
+      console.log(`stdout: ${data}`);
+      result += data;
+    });
+
+    process.stderr.on("data", (data) => {
+      console.error(`stderr: ${data}`);
+      result += data;
+    });
+
+    process.on("close", (code) => {
+      if (code === 0) {
+        resolve(result);
+      } else {
+        reject(new Error(`Process exited with code ${code}`));
+      }
+    });
+  });
 });
 
 const createWindow = () => {
