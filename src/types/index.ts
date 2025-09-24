@@ -1,5 +1,6 @@
 // Import types for interface definitions
 import type { PaginationParams } from "./common.js";
+import { IssuesParams, SonarQubeIssuesResult } from "./issues.js";
 import type { SonarQubeProjectsResult } from "./projects.js";
 
 // Common types
@@ -45,4 +46,5 @@ export type {
 // Client interface
 export interface ISonarQubeClient {
   listProjects(params?: PaginationParams): Promise<SonarQubeProjectsResult>;
+  listIssues(params: IssuesParams): Promise<SonarQubeIssuesResult>;
 }

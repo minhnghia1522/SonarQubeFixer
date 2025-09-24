@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { ProjectItem } from "../components/ProjectItem";
 
-export const Route = createFileRoute()({
+export const Route = createFileRoute("/projects")({
   component: ProjectsPage,
 });
 

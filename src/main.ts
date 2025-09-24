@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain } from "electron";
 import path from "node:path";
 import started from "electron-squirrel-startup";
 import store from "./storage/store";
-import { SonarQubeSetup } from "./types";
+import { IssuesParams, SonarQubeSetup } from "./types";
 import { SonarQubeClient } from "./sonarqube";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -27,6 +27,21 @@ ipcMain.handle("sonarqube:list-projects", async () => {
   );
 
   return await client.listProjects();
+});
+
+ipcMain.handle("sonarqube:list-issues", async (_, params: IssuesParams) => {
+  const sonarQubeSetup = store.get("sonarQubeSetup");
+  if (!sonarQubeSetup || !sonarQubeSetup.sonarqubeToken) {
+    throw new Error("SonarQube setup is not configured.");
+  }
+
+  const client = new SonarQubeClient(
+    sonarQubeSetup.sonarqubeUrl,
+    sonarQubeSetup.sonarqubeToken,
+    sonarQubeSetup.sonarqubeOrganization
+  );
+
+  return await client.listIssues(params);
 });
 
 const createWindow = () => {

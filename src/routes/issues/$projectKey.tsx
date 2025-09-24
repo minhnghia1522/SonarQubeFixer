@@ -1,0 +1,308 @@
+import React, { useEffect, useState, useMemo } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import {
+  Box,
+  CircularProgress,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+  TablePagination,
+  TextField,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Checkbox,
+  ListItemText,
+  SelectChangeEvent,
+  Grid,
+} from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import {
+  IssuesParams,
+  SonarQubeIssue,
+  SonarQubeComponent,
+} from "../../types/issues";
+import { useSnackbar } from "../../contexts/SnackbarContext";
+
+export const Route = createFileRoute("/issues/$projectKey")({
+  component: ProjectIssues,
+});
+
+type GroupedIssues = {
+  [key: string]: SonarQubeIssue[];
+};
+
+const STATUS_OPTIONS = ["OPEN", "CONFIRMED", "REOPENED", "RESOLVED", "CLOSED"];
+
+function ProjectIssues() {
+  const { projectKey } = Route.useParams();
+
+  console.log("Project Key:", projectKey);
+  const [issues, setIssues] = useState<SonarQubeIssue[]>([]);
+  const [components, setComponents] = useState<SonarQubeComponent[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [search, setSearch] = useState("");
+  const [severity, setSeverity] = useState("");
+  const [type, setType] = useState<IssuesParams["types"]>(["BUG"]);
+  const [statuses, setStatuses] = useState<IssuesParams["issueStatuses"]>([
+    "OPEN",
+    "CONFIRMED",
+  ]);
+
+  const { showSnackbar } = useSnackbar();
+
+  const fetchIssues = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params: IssuesParams = {
+        projectKey,
+        page: page + 1,
+        pageSize: rowsPerPage,
+        s: "FILE_LINE",
+        asc: true,
+        ...(severity && {
+          severities: [
+            severity as "INFO" | "MINOR" | "MAJOR" | "CRITICAL" | "BLOCKER",
+          ],
+        }),
+        ...(type && { types: type }),
+        ...(statuses && { issueStatuses: statuses }),
+      };
+      const result = await window.electronAPI.listIssues(params);
+      console.log("Fetched issues:", result);
+      setIssues(result.issues);
+      setComponents(result.components);
+      setTotal(result.paging.total);
+    } catch (err) {
+      if (err instanceof Error) {
+        showSnackbar(`Error fetching issues: ${err.message}`, "error");
+        setError(err.message);
+      } else {
+        setError("An unknown error occurred.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchIssues();
+  }, [page, rowsPerPage, severity, type, statuses]);
+
+  const componentMap = useMemo(() => {
+    return components.reduce(
+      (acc, component) => {
+        acc[component.key] = component;
+        return acc;
+      },
+      {} as { [key: string]: SonarQubeComponent }
+    );
+  }, [components]);
+
+  const groupedIssues = useMemo(() => {
+    return issues.reduce((acc, issue) => {
+      const componentKey = issue.component;
+      if (!acc[componentKey]) {
+        acc[componentKey] = [];
+      }
+      acc[componentKey].push(issue);
+      return acc;
+    }, {} as GroupedIssues);
+  }, [issues]);
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(event.target.value);
+  };
+
+  const handleFilterChange = () => {
+    setPage(0);
+    fetchIssues();
+  };
+
+  const handleStatusChange = (event: SelectChangeEvent<typeof statuses>) => {
+    const {
+      target: { value },
+    } = event;
+    setStatuses(
+      (typeof value === "string" ? value.split(",") : value) as
+        | ("OPEN" | "CONFIRMED" | "REOPENED" | "RESOLVED" | "CLOSED")[]
+        | undefined
+    );
+  };
+
+  return (
+    <Box sx={{ p: 2 }}>
+      <Typography variant="h4" gutterBottom>
+        Issues for {projectKey}
+      </Typography>
+
+      <Box sx={{ mb: 2 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <TextField
+              fullWidth
+              label="Search"
+              value={search}
+              onChange={handleSearchChange}
+              onBlur={handleFilterChange}
+              variant="outlined"
+              size="small"
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Severity</InputLabel>
+              <Select
+                value={severity}
+                onChange={(e) => setSeverity(e.target.value)}
+                onBlur={handleFilterChange}
+                label="Severity"
+              >
+                <MenuItem value="">All</MenuItem>
+                <MenuItem value="BLOCKER">Blocker</MenuItem>
+                <MenuItem value="CRITICAL">Critical</MenuItem>
+                <MenuItem value="MAJOR">Major</MenuItem>
+                <MenuItem value="MINOR">Minor</MenuItem>
+                <MenuItem value="INFO">Info</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Type</InputLabel>
+              <Select
+                value={type}
+                onChange={(e) =>
+                  setType(e.target.value as IssuesParams["types"])
+                }
+                onBlur={handleFilterChange}
+                label="Type"
+              >
+                <MenuItem value="BUG">Bug</MenuItem>
+                <MenuItem value="VULNERABILITY">Vulnerability</MenuItem>
+                <MenuItem value="CODE_SMELL">Code Smell</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Status</InputLabel>
+              <Select
+                multiple
+                value={statuses}
+                onChange={handleStatusChange}
+                onBlur={handleFilterChange}
+                label="Status"
+                renderValue={(selected) => selected.join(", ")}
+              >
+                {STATUS_OPTIONS.map((status) => (
+                  <MenuItem key={status} value={status}>
+                    <Checkbox
+                      checked={
+                        (statuses || []).indexOf(
+                          status as
+                            | "OPEN"
+                            | "CONFIRMED"
+                            | "REOPENED"
+                            | "RESOLVED"
+                            | "CLOSED"
+                        ) > -1
+                      }
+                    />
+                    <ListItemText primary={status} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+        </Grid>
+      </Box>
+
+      {loading && <CircularProgress />}
+      {error && <Typography color="error">Error: {error}</Typography>}
+      {!loading && !error && (
+        <Paper>
+          {Object.keys(groupedIssues).length === 0 ? (
+            <Typography sx={{ p: 2 }}>
+              No issues found for the selected criteria.
+            </Typography>
+          ) : (
+            Object.keys(groupedIssues).map((componentKey) => (
+              <Accordion key={componentKey} defaultExpanded>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography>
+                    {componentMap[componentKey]?.path || componentKey} (
+                    {groupedIssues[componentKey].length} issues)
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <TableContainer>
+                    <Table size="small" sx={{ tableLayout: "fixed" }}>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ width: "10%" }}>Severity</TableCell>
+                          <TableCell sx={{ width: "7%" }}>Type</TableCell>
+                          <TableCell sx={{ width: 1 }}>Message</TableCell>
+                          <TableCell sx={{ width: "5%" }}>Line</TableCell>
+                          <TableCell sx={{ width: "15%" }}>Status</TableCell>
+                          <TableCell sx={{ width: "10%" }}>Action</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {groupedIssues[componentKey].map((issue) => (
+                          <TableRow key={issue.key}>
+                            <TableCell>{issue.severity}</TableCell>
+                            <TableCell>{issue.type}</TableCell>
+                            <TableCell
+                              sx={{
+                                wordBreak: "break-word",
+                                whiteSpace: "normal",
+                              }}
+                            >
+                              {issue.message}
+                            </TableCell>
+                            <TableCell>{issue.line}</TableCell>
+                            <TableCell>{issue.status}</TableCell>
+                            <TableCell>
+                              {/* Action buttons go here */}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </AccordionDetails>
+              </Accordion>
+            ))
+          )}
+          {/* <TablePagination
+            rowsPerPageOptions={[10, 25, 50]}
+            component="div"
+            count={total}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={(e, newPage) => setPage(newPage)}
+            onRowsPerPageChange={(e) => {
+              setRowsPerPage(parseInt(e.target.value, 10));
+              setPage(0);
+            }}
+          /> */}
+        </Paper>
+      )}
+    </Box>
+  );
+}

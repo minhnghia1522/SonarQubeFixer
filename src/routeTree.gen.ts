@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as ProjectsRouteImport } from './routes/projects'
+import { Route as IssuesProjectKeyRouteImport } from './routes/issues/$projectKey'
 
 const SetupRoute = SetupRouteImport.update({
   id: '/setup',
@@ -22,31 +23,40 @@ const ProjectsRoute = ProjectsRouteImport.update({
   path: '/projects',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IssuesProjectKeyRoute = IssuesProjectKeyRouteImport.update({
+  id: '/issues/$projectKey',
+  path: '/issues/$projectKey',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/projects': typeof ProjectsRoute
   '/setup': typeof SetupRoute
+  '/issues/$projectKey': typeof IssuesProjectKeyRoute
 }
 export interface FileRoutesByTo {
   '/projects': typeof ProjectsRoute
   '/setup': typeof SetupRoute
+  '/issues/$projectKey': typeof IssuesProjectKeyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/projects': typeof ProjectsRoute
   '/setup': typeof SetupRoute
+  '/issues/$projectKey': typeof IssuesProjectKeyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/projects' | '/setup'
+  fullPaths: '/projects' | '/setup' | '/issues/$projectKey'
   fileRoutesByTo: FileRoutesByTo
-  to: '/projects' | '/setup'
-  id: '__root__' | '/projects' | '/setup'
+  to: '/projects' | '/setup' | '/issues/$projectKey'
+  id: '__root__' | '/projects' | '/setup' | '/issues/$projectKey'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   ProjectsRoute: typeof ProjectsRoute
   SetupRoute: typeof SetupRoute
+  IssuesProjectKeyRoute: typeof IssuesProjectKeyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/issues/$projectKey': {
+      id: '/issues/$projectKey'
+      path: '/issues/$projectKey'
+      fullPath: '/issues/$projectKey'
+      preLoaderRoute: typeof IssuesProjectKeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   ProjectsRoute: ProjectsRoute,
   SetupRoute: SetupRoute,
+  IssuesProjectKeyRoute: IssuesProjectKeyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,7 +1,9 @@
-import { ProjectsDomain } from "./domains";
+import { IssuesDomain, ProjectsDomain } from "./domains";
 import {
   ISonarQubeClient,
+  IssuesParams,
   PaginationParams,
+  SonarQubeIssuesResult,
   SonarQubeProjectsResult,
 } from "./types";
 const { SonarQubeClient: WebApiClient } = require("sonarqube-web-api-client");
@@ -15,6 +17,7 @@ export class SonarQubeClient implements ISonarQubeClient {
 
   // Domain modules
   private readonly projectsDomain: ProjectsDomain;
+  private readonly issuesDomain: IssuesDomain;
 
   constructor(
     baseUrl = DEFAULT_SONARQUBE_URL,
@@ -33,9 +36,14 @@ export class SonarQubeClient implements ISonarQubeClient {
       this.webApiClient,
       this.organization
     );
+    this.issuesDomain = new IssuesDomain(this.webApiClient, this.organization);
   }
 
   listProjects(params?: PaginationParams): Promise<SonarQubeProjectsResult> {
     return this.projectsDomain.listProjects(params);
+  }
+
+  listIssues(params: IssuesParams): Promise<SonarQubeIssuesResult> {
+    return this.issuesDomain.getIssues(params);
   }
 }
