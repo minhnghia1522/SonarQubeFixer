@@ -28,6 +28,10 @@ import {
   Chip,
   Stack,
   Tooltip,
+  LinearProgress,
+  Toolbar,
+  FormControlLabel,
+  Switch,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
@@ -81,6 +85,18 @@ function ProjectIssues() {
   const [everFixedMap, setEverFixedMap] = useState<Record<string, boolean>>({});
   const [logViewerOpen, setLogViewerOpen] = useState(false);
   const [selectedIssueKey, setSelectedIssueKey] = useState<string | null>(null);
+  const [selectedIssues, setSelectedIssues] = useState<Set<string>>(new Set());
+  const [selectAll, setSelectAll] = useState(false);
+  const [selectAllAcrossPages, setSelectAllAcrossPages] = useState(false);
+  const [batchState, setBatchState] = useState({
+    isRunning: false,
+    processed: 0,
+    total: 0,
+    perIssueStatus: {} as Record<
+      string,
+      "pending" | "running" | "success" | "error"
+    >,
+  });
 
   const { showSnackbar } = useSnackbar();
 
@@ -157,6 +173,35 @@ function ProjectIssues() {
     fetchIssues();
     fetchProjectDirectory();
   }, [page, rowsPerPage, severity, type, statuses, projectKey]);
+
+  useEffect(() => {
+    // Clear selection when filters change
+    setSelectedIssues(new Set());
+    setSelectAll(false);
+    setSelectAllAcrossPages(false);
+  }, [severity, type, statuses, search, page, rowsPerPage]);
+
+  const handleToggleSelect = (issueKey: string) => {
+    setSelectedIssues((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(issueKey)) {
+        newSet.delete(issueKey);
+      } else {
+        newSet.add(issueKey);
+      }
+      return newSet;
+    });
+  };
+
+  const handleToggleSelectAll = () => {
+    if (selectAll) {
+      setSelectedIssues(new Set());
+    } else {
+      const allIssueKeys = issues.map((issue) => issue.key);
+      setSelectedIssues(new Set(allIssueKeys));
+    }
+    setSelectAll(!selectAll);
+  };
 
   const componentMap = useMemo(() => {
     return components.reduce(
@@ -253,6 +298,130 @@ function ProjectIssues() {
   const handleCloseLogViewer = () => {
     setLogViewerOpen(false);
     setSelectedIssueKey(null);
+  };
+
+  const handleFixSelectedIssues = async () => {
+    let dir = projectDir;
+    if (!dir) {
+      showSnackbar("Please select the project directory first.", "warning");
+      const selectedDir = await window.electronAPI.selectProjectDirectory();
+      if (selectedDir) {
+        await window.electronAPI.setProjectDirectory(projectKey, selectedDir);
+        setProjectDir(selectedDir);
+        dir = selectedDir;
+      } else {
+        return; // User cancelled directory selection
+      }
+    }
+
+    let issuesToFix: SonarQubeIssue[] = [];
+    if (selectAllAcrossPages) {
+      setLoading(true);
+      try {
+        const allIssues: SonarQubeIssue[] = [];
+        let currentPage = 1;
+        let totalPages = 1;
+        do {
+          const result = await window.electronAPI.listIssues({
+            projectKey,
+            page: currentPage,
+            pageSize: 500, // Max page size
+            s: "FILE_LINE",
+            asc: true,
+            ...(severity && {
+              severities: [
+                severity as "INFO" | "MINOR" | "MAJOR" | "CRITICAL" | "BLOCKER",
+              ],
+            }),
+            ...(type && { types: type }),
+            ...(statuses && { issueStatuses: statuses }),
+          });
+          allIssues.push(...result.issues);
+          totalPages = Math.ceil(result.paging.total / result.paging.pageSize);
+          currentPage++;
+        } while (currentPage <= totalPages);
+        issuesToFix = allIssues;
+      } catch (err) {
+        if (err instanceof Error) {
+          showSnackbar(`Error fetching all issues: ${err.message}`, "error");
+        }
+        setLoading(false);
+        return;
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      issuesToFix = issues.filter((issue) => selectedIssues.has(issue.key));
+    }
+
+    if (issuesToFix.length === 0) {
+      showSnackbar("No issues selected to fix.", "info");
+      return;
+    }
+
+    setBatchState({
+      isRunning: true,
+      processed: 0,
+      total: issuesToFix.length,
+      perIssueStatus: issuesToFix.reduce(
+        (acc, issue) => ({ ...acc, [issue.key]: "pending" }),
+        {}
+      ),
+    });
+
+    const concurrency = 5;
+    const queue = [...issuesToFix];
+    let running = 0;
+    let processed = 0;
+
+    const runTask = async (issue: SonarQubeIssue) => {
+      running++;
+      setBatchState((prev) => ({
+        ...prev,
+        perIssueStatus: { ...prev.perIssueStatus, [issue.key]: "running" },
+      }));
+      try {
+        await window.electronAPI.fixIssue(issue);
+        setEverFixedMap((prev) => ({ ...prev, [issue.key]: true }));
+        setBatchState((prev) => ({
+          ...prev,
+          perIssueStatus: { ...prev.perIssueStatus, [issue.key]: "success" },
+        }));
+      } catch (err) {
+        setBatchState((prev) => ({
+          ...prev,
+          perIssueStatus: { ...prev.perIssueStatus, [issue.key]: "error" },
+        }));
+        if (err instanceof Error) {
+          showSnackbar(
+            `Error fixing issue ${issue.key}: ${err.message}`,
+            "error"
+          );
+        }
+      } finally {
+        running--;
+        processed++;
+        setBatchState((prev) => ({ ...prev, processed }));
+        runNext();
+      }
+    };
+
+    const runNext = () => {
+      while (running < concurrency && queue.length > 0) {
+        const issue = queue.shift();
+        if (issue) {
+          runTask(issue);
+        }
+      }
+      if (processed === issuesToFix.length) {
+        setBatchState((prev) => ({ ...prev, isRunning: false }));
+        showSnackbar("Batch fix completed.", "success");
+        setSelectedIssues(new Set());
+        setSelectAll(false);
+      }
+    };
+
+    runNext();
   };
 
   return (
@@ -372,6 +541,44 @@ function ProjectIssues() {
       {error && <Typography color="error">Error: {error}</Typography>}
       {!loading && !error && (
         <Paper>
+          <Toolbar sx={{ justifyContent: "space-between", flexWrap: "wrap" }}>
+            <Box>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={selectAll}
+                    onChange={handleToggleSelectAll}
+                    indeterminate={
+                      selectedIssues.size > 0 &&
+                      selectedIssues.size < issues.length &&
+                      !selectAllAcrossPages
+                    }
+                  />
+                }
+                label={`Select Page (${
+                  selectAllAcrossPages ? total : selectedIssues.size
+                } selected)`}
+              />
+            </Box>
+            <Button
+              variant="contained"
+              onClick={handleFixSelectedIssues}
+              disabled={selectedIssues.size === 0 || batchState.isRunning}
+            >
+              Fix Selected
+            </Button>
+          </Toolbar>
+          {batchState.isRunning && (
+            <Box sx={{ p: 2 }}>
+              <LinearProgress
+                variant="determinate"
+                value={(batchState.processed / batchState.total) * 100}
+              />
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                Processing: {batchState.processed} / {batchState.total}
+              </Typography>
+            </Box>
+          )}
           {Object.keys(groupedIssues).length === 0 ? (
             <Typography sx={{ p: 2 }}>
               No issues found for the selected criteria.
@@ -390,6 +597,16 @@ function ProjectIssues() {
                     <Table size="small" sx={{ tableLayout: "fixed" }}>
                       <TableHead>
                         <TableRow>
+                          <TableCell padding="checkbox">
+                            {/* <Checkbox
+                              checked={selectAll}
+                              onChange={handleToggleSelectAll}
+                              indeterminate={
+                                selectedIssues.size > 0 &&
+                                selectedIssues.size < issues.length
+                              }
+                            /> */}
+                          </TableCell>
                           <TableCell sx={{ width: "10%" }}>Severity</TableCell>
                           <TableCell sx={{ width: "10%" }}>Type</TableCell>
                           <TableCell sx={{ width: "10%" }}>Issue Key</TableCell>
@@ -401,7 +618,16 @@ function ProjectIssues() {
                       </TableHead>
                       <TableBody>
                         {groupedIssues[componentKey].map((issue) => (
-                          <TableRow key={issue.key}>
+                          <TableRow
+                            key={issue.key}
+                            selected={selectedIssues.has(issue.key)}
+                          >
+                            <TableCell padding="checkbox">
+                              <Checkbox
+                                checked={selectedIssues.has(issue.key)}
+                                onChange={() => handleToggleSelect(issue.key)}
+                              />
+                            </TableCell>
                             <TableCell>{issue.severity}</TableCell>
                             <TableCell>{issue.type}</TableCell>
                             <TableCell>
@@ -442,12 +668,26 @@ function ProjectIssues() {
                                 <Typography variant="body2">
                                   {issue.status}
                                 </Typography>
-                                {everFixedMap[issue.key] && (
+                                {(everFixedMap[issue.key] ||
+                                  batchState.perIssueStatus[issue.key] ===
+                                    "success") && (
                                   <Chip
                                     label="Fixed"
                                     color="success"
                                     size="small"
                                     variant="outlined"
+                                  />
+                                )}
+                                {batchState.perIssueStatus[issue.key] ===
+                                  "running" && (
+                                  <CircularProgress size={14} />
+                                )}
+                                {batchState.perIssueStatus[issue.key] ===
+                                  "error" && (
+                                  <Chip
+                                    label="Error"
+                                    color="error"
+                                    size="small"
                                   />
                                 )}
                               </Stack>
@@ -460,6 +700,7 @@ function ProjectIssues() {
                                   onClick={() => handleFixIssue(issue)}
                                   disabled={
                                     rowLoading[issue.key] ||
+                                    batchState.isRunning ||
                                     issue.status == "RESOLVED" ||
                                     issue.status == "CLOSED"
                                   }
