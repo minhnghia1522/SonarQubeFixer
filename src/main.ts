@@ -10,6 +10,7 @@ import store, {
 import { IssuesParams, SonarQubeIssue, SonarQubeSetup } from "./types";
 import { SonarQubeClient } from "./sonarqube";
 import { Prompt } from "./utils/prompt";
+import { writeLog } from "./utils/logUtil";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -91,45 +92,27 @@ ipcMain.handle("fix-issue", async (_, issue: SonarQubeIssue) => {
       `File for component "${issue.component}" not found at ${pathToFile}.`
     );
   }
-  console.log(`Resolved component file path: ${pathToFile}`);
-
   const prompt = Prompt.fixIssue(issue, pathToFile);
-  const quotedPrompt = `"${prompt.replace(/"/g, '\\"')}"`;
-  return new Promise((resolve, reject) => {
-    const command = "codex";
-    const args = [
-      "exec",
-      "--yolo",
-      "--model",
-      "gpt-4.1",
-      quotedPrompt,
-      "--skip-git-repo-check",
-    ];
-    console.log(`Executing command: ${command} ${args.join(" ")}`);
+  return new Promise(async (resolve, reject) => {
+    try {
+      const resultFixed = await codexExecute(prompt, projectDir);
 
-    const process = spawn(command, args, {
-      shell: true,
-      cwd: projectDir,
-    });
-
-    let result = "";
-
-    process.stdout.on("data", (data) => {
-      result += data;
-    });
-
-    process.stderr.on("data", (data) => {
-      result += data;
-    });
-
-    process.on("close", (code) => {
-      console.log(`result: ${result}`);
-      if (code === 0) {
-        resolve(result);
-      } else {
-        reject(new Error(`Process exited with code ${code}`));
+      // Ghi log sử dụng utils, path là từ thư mục ứng dụng
+      try {
+        const logRelativePath = path.join(issue.project, issue.key, "log.txt");
+        writeLog(logRelativePath, String(resultFixed), "append");
+      } catch (logErr) {
+        console.error("Ghi log thất bại:", logErr);
       }
-    });
+
+      // const responseJson = await codexExecute(
+      //   Prompt.formatResponseIssueFixed(resultFixed as string),
+      //   projectDir
+      // );
+      resolve("Fixed "+ issue.key );
+    } catch (error) {
+      reject(error);
+    }
   });
 });
 
@@ -180,3 +163,46 @@ app.on("activate", () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
+
+const codexExecute = async (
+  prompt: string,
+  projectDir: string,
+  model: string = "gpt-4.1"
+) => {
+  const quotedPrompt = `"${prompt.replace(/"/g, '\\"')}"`;
+  return new Promise((resolve, reject) => {
+    const command = "codex";
+    const args = [
+      "exec",
+      "--yolo",
+      "--model",
+      model,
+      quotedPrompt,
+      "--skip-git-repo-check",
+    ];
+    console.log(`Executing command: ${command} ${args.join(" ")}`);
+    const process = spawn(command, args, {
+      shell: true,
+      cwd: projectDir,
+    });
+
+    let result = "";
+
+    process.stdout.on("data", (data) => {
+      result += data;
+    });
+
+    process.stderr.on("data", (data) => {
+      result += data;
+    });
+
+    process.on("close", (code) => {
+      console.log(`result: ${result}`);
+      if (code === 0) {
+        resolve(result);
+      } else {
+        reject(new Error(`Process exited with code ${code}`));
+      }
+    });
+  });
+};
