@@ -25,6 +25,8 @@ import {
   ListItemText,
   SelectChangeEvent,
   Grid,
+  Chip,
+  Stack,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
@@ -33,6 +35,7 @@ import {
   SonarQubeComponent,
 } from "../../types/issues";
 import { useSnackbar } from "../../contexts/SnackbarContext";
+import { LogViewerDialog } from "../../components/issues/LogViewerDialog";
 
 export const Route = createFileRoute("/issues/$projectKey")({
   component: ProjectIssues,
@@ -67,6 +70,10 @@ function ProjectIssues() {
     "CONFIRMED",
   ]);
   const [projectDir, setProjectDir] = useState<string | null>(null);
+  const [rowLoading, setRowLoading] = useState<Record<string, boolean>>({});
+  const [everFixedMap, setEverFixedMap] = useState<Record<string, boolean>>({});
+  const [logViewerOpen, setLogViewerOpen] = useState(false);
+  const [selectedIssueKey, setSelectedIssueKey] = useState<string | null>(null);
 
   const { showSnackbar } = useSnackbar();
 
@@ -106,6 +113,14 @@ function ProjectIssues() {
       setIssues(result.issues);
       setComponents(result.components);
       setTotal(result.paging.total);
+      if (result.issues.length > 0) {
+        const issueKeys = result.issues.map((i) => i.key);
+        const fixedMap = await window.electronAPI.checkIssuesFixed(
+          projectKey,
+          issueKeys
+        );
+        setEverFixedMap(fixedMap);
+      }
     } catch (err) {
       if (err instanceof Error) {
         showSnackbar(`Error fetching issues: ${err.message}`, "error");
@@ -193,9 +208,11 @@ function ProjectIssues() {
       }
     }
 
+    setRowLoading((prev) => ({ ...prev, [issue.key]: true }));
     try {
       const result = await window.electronAPI.fixIssue(issue);
       showSnackbar(result, "success");
+      setEverFixedMap((prev) => ({ ...prev, [issue.key]: true }));
     } catch (err) {
       if (err instanceof Error) {
         showSnackbar(`Error fixing issue: ${err.message}`, "error");
@@ -203,7 +220,19 @@ function ProjectIssues() {
       } else {
         showSnackbar("An unknown error occurred while fixing issue.", "error");
       }
+    } finally {
+      setRowLoading((prev) => ({ ...prev, [issue.key]: false }));
     }
+  };
+
+  const handleViewLogClick = (issueKey: string) => {
+    setSelectedIssueKey(issueKey);
+    setLogViewerOpen(true);
+  };
+
+  const handleCloseLogViewer = () => {
+    setLogViewerOpen(false);
+    setSelectedIssueKey(null);
   };
 
   return (
@@ -342,8 +371,8 @@ function ProjectIssues() {
                       <TableHead>
                         <TableRow>
                           <TableCell sx={{ width: "10%" }}>Severity</TableCell>
-                          <TableCell sx={{ width: "7%" }}>Type</TableCell>
-                          <TableCell sx={{ width: 1 }}>Message</TableCell>
+                          <TableCell sx={{ width: "10%" }}>Type</TableCell>
+                          <TableCell sx={{ width: "60%" }}>Message</TableCell>
                           <TableCell sx={{ width: "5%" }}>Line</TableCell>
                           <TableCell sx={{ width: "15%" }}>Status</TableCell>
                           <TableCell sx={{ width: "10%" }}>Action</TableCell>
@@ -363,15 +392,46 @@ function ProjectIssues() {
                               {issue.message}
                             </TableCell>
                             <TableCell>{issue.line}</TableCell>
-                            <TableCell>{issue.status}</TableCell>
                             <TableCell>
-                              <Button
-                                variant="contained"
-                                size="small"
-                                onClick={() => handleFixIssue(issue)}
-                              >
-                                Fix issue
-                              </Button>
+                              <Stack direction="row" spacing={1} alignItems="center">
+                                <Typography variant="body2">{issue.status}</Typography>
+                                {everFixedMap[issue.key] && (
+                                  <Chip
+                                    label="Fixed"
+                                    color="success"
+                                    size="small"
+                                    variant="outlined"
+                                  />
+                                )}
+                              </Stack>
+                            </TableCell>
+                            <TableCell>
+                              <Stack direction="row" spacing={1}>
+                                <Button
+                                  variant="contained"
+                                  size="small"
+                                  onClick={() => handleFixIssue(issue)}
+                                  disabled={rowLoading[issue.key]}
+                                  startIcon={
+                                    rowLoading[issue.key] ? (
+                                      <CircularProgress
+                                        size={16}
+                                        color="inherit"
+                                      />
+                                    ) : null
+                                  }
+                                >
+                                  {rowLoading[issue.key] ? "Fixing..." : "Fix"}
+                                </Button>
+                                <Button
+                                  variant="outlined"
+                                  size="small"
+                                  onClick={() => handleViewLogClick(issue.key)}
+                                  disabled={!everFixedMap[issue.key]}
+                                >
+                                  View Log
+                                </Button>
+                              </Stack>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -396,6 +456,12 @@ function ProjectIssues() {
           />
         </Paper>
       )}
+      <LogViewerDialog
+        open={logViewerOpen}
+        onClose={handleCloseLogViewer}
+        projectKey={projectKey}
+        issueKey={selectedIssueKey}
+      />
     </Box>
   );
 }

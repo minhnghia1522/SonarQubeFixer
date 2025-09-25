@@ -11,6 +11,14 @@ export interface IElectronAPI extends ISonarQubeClient {
   getProjectDirectory: (projectKey: string) => Promise<string | null>;
   setProjectDirectory: (projectKey: string, path: string) => Promise<void>;
   selectProjectDirectory: () => Promise<string | null>;
+  checkIssuesFixed: (
+    projectKey: string,
+    issueKeys: string[]
+  ) => Promise<Record<string, boolean>>;
+  readIssueLog: (
+    projectKey: string,
+    issueKey: string
+  ) => Promise<string | null>;
 }
 
 declare global {

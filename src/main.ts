@@ -3,6 +3,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
 import started from "electron-squirrel-startup";
+import { z } from "zod";
 import store, {
   getProjectDirectory,
   setProjectDirectory,
@@ -10,12 +11,45 @@ import store, {
 import { IssuesParams, SonarQubeIssue, SonarQubeSetup } from "./types";
 import { SonarQubeClient } from "./sonarqube";
 import { Prompt } from "./utils/prompt";
-import { writeLog } from "./utils/logUtil";
+import { readLog, writeLog } from "./utils/logUtil";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();
 }
+
+const CheckIssuesFixedPayload = z.object({
+  projectKey: z.string(),
+  issueKeys: z.array(z.string()),
+});
+
+ipcMain.handle(
+  "fix-issue:check-fixed-many",
+  async (_, payload: z.infer<typeof CheckIssuesFixedPayload>) => {
+    const { projectKey, issueKeys } = CheckIssuesFixedPayload.parse(payload);
+    const results: Record<string, boolean> = {};
+    for (const issueKey of issueKeys) {
+      const logRelativePath = path.join(projectKey, issueKey, "log.txt");
+      // Assuming readLog returns null if file doesn't exist
+      results[issueKey] = (await readLog(logRelativePath)) !== null;
+    }
+    return results;
+  }
+);
+
+const ReadIssueLogPayload = z.object({
+  projectKey: z.string(),
+  issueKey: z.string(),
+});
+
+ipcMain.handle(
+  "fix-issue:read-log",
+  async (_, payload: z.infer<typeof ReadIssueLogPayload>) => {
+    const { projectKey, issueKey } = ReadIssueLogPayload.parse(payload);
+    const logRelativePath = path.join(projectKey, issueKey, "log.txt");
+    return await readLog(logRelativePath);
+  }
+);
 
 ipcMain.on("sonarqube:update-config", (_, setup: SonarQubeSetup) => {
   (store as any).set("sonarQubeSetup", setup);

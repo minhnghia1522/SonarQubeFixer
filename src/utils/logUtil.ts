@@ -34,7 +34,7 @@ export function writeLog(
  */
 export function readLog(relativePath: string): string | null {
   const appDir = process.cwd();
-  const logPath = path.join(appDir, relativePath);
+  const logPath = path.join(appDir, "fix-issue-log", relativePath);
   try {
     if (fs.existsSync(logPath)) {
       return fs.readFileSync(logPath, "utf8");

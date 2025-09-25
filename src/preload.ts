@@ -14,4 +14,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   setProjectDirectory: (projectKey: string, path: string) =>
     ipcRenderer.invoke("project:set-directory", { projectKey, path }),
   selectProjectDirectory: () => ipcRenderer.invoke("project:select-directory"),
+  checkIssuesFixed: (projectKey: string, issueKeys: string[]) =>
+    ipcRenderer.invoke("fix-issue:check-fixed-many", {
+      projectKey,
+      issueKeys,
+    }),
+  readIssueLog: (projectKey: string, issueKey: string) =>
+    ipcRenderer.invoke("fix-issue:read-log", { projectKey, issueKey }),
 });
