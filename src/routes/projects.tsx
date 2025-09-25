@@ -26,7 +26,6 @@ function ProjectsPage() {
     setError(null);
     try {
       const result = await window.electronAPI.listProjects({});
-      console.log("Fetched projects:", result);
       setProjects(result.projects);
     } catch (err) {
       if (err instanceof Error) {
