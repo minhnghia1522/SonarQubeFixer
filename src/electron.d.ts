@@ -2,11 +2,15 @@ import {
   SonarQubeProjectsResult,
   SonarQubeSetup,
   ISonarQubeClient,
+  SonarQubeIssue,
 } from "./types";
 
 export interface IElectronAPI extends ISonarQubeClient {
   updateSonarQubeConfig: (setup: SonarQubeSetup) => void;
-  fixIssue: (issueKey: string) => Promise<string>;
+  fixIssue: (payload: SonarQubeIssue) => Promise<string>;
+  getProjectDirectory: (projectKey: string) => Promise<string | null>;
+  setProjectDirectory: (projectKey: string, path: string) => Promise<void>;
+  selectProjectDirectory: () => Promise<string | null>;
 }
 
 declare global {

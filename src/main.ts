@@ -1,10 +1,15 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import path from "node:path";
+import fs from "node:fs";
 import { spawn } from "node:child_process";
 import started from "electron-squirrel-startup";
-import store from "./storage/store";
-import { IssuesParams, SonarQubeSetup } from "./types";
+import store, {
+  getProjectDirectory,
+  setProjectDirectory,
+} from "./storage/store";
+import { IssuesParams, SonarQubeIssue, SonarQubeSetup } from "./types";
 import { SonarQubeClient } from "./sonarqube";
+import { Prompt } from "./utils/prompt";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -12,11 +17,30 @@ if (started) {
 }
 
 ipcMain.on("sonarqube:update-config", (_, setup: SonarQubeSetup) => {
-  store.set("sonarQubeSetup", setup);
+  (store as any).set("sonarQubeSetup", setup);
+});
+
+ipcMain.handle("project:get-directory", (_, projectKey: string) => {
+  return getProjectDirectory(projectKey);
+});
+
+ipcMain.handle("project:set-directory", (_, { projectKey, path }) => {
+  setProjectDirectory(projectKey, path);
+});
+
+ipcMain.handle("project:select-directory", async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    properties: ["openDirectory"],
+  });
+  if (canceled) {
+    return null;
+  } else {
+    return filePaths[0];
+  }
 });
 
 ipcMain.handle("sonarqube:list-projects", async () => {
-  const sonarQubeSetup = store.get("sonarQubeSetup");
+  const sonarQubeSetup = (store as any).store.sonarQubeSetup as SonarQubeSetup;
   if (!sonarQubeSetup || !sonarQubeSetup.sonarqubeToken) {
     throw new Error("SonarQube setup is not configured.");
   }
@@ -31,7 +55,7 @@ ipcMain.handle("sonarqube:list-projects", async () => {
 });
 
 ipcMain.handle("sonarqube:list-issues", async (_, params: IssuesParams) => {
-  const sonarQubeSetup = store.get("sonarQubeSetup");
+  const sonarQubeSetup = (store as any).store.sonarQubeSetup as SonarQubeSetup;
   if (!sonarQubeSetup || !sonarQubeSetup.sonarqubeToken) {
     throw new Error("SonarQube setup is not configured.");
   }
@@ -45,8 +69,32 @@ ipcMain.handle("sonarqube:list-issues", async (_, params: IssuesParams) => {
   return await client.listIssues(params);
 });
 
-ipcMain.handle("fix-issue", async (_, issueKey: string) => {
-  console.log(`Fixing issue: ${issueKey}`);
+ipcMain.handle("fix-issue", async (_, issue: SonarQubeIssue) => {
+  const projectDir = getProjectDirectory(issue.project);
+  if (!projectDir) {
+    throw new Error(
+      `Project directory not set for ${issue.project}. Please set it before fixing issues.`
+    );
+  }
+  const componentPath = issue.component.includes(":")
+    ? issue.component.substring(issue.component.lastIndexOf(":") + 1)
+    : issue.component;
+  const normalizedComponentPath = path.normalize(componentPath);
+  if (path.isAbsolute(normalizedComponentPath)) {
+    throw new Error(
+      `Component path "${issue.component}" resolves outside of project directory.`
+    );
+  }
+  const pathToFile = path.join(projectDir, normalizedComponentPath).normalize();
+  if (!fs.existsSync(pathToFile)) {
+    throw new Error(
+      `File for component "${issue.component}" not found at ${pathToFile}.`
+    );
+  }
+  console.log(`Resolved component file path: ${pathToFile}`);
+
+  const prompt = Prompt.fixIssue(issue, pathToFile);
+  const quotedPrompt = `"${prompt.replace(/"/g, '\\"')}"`;
   return new Promise((resolve, reject) => {
     const command = "codex";
     const args = [
@@ -54,25 +102,28 @@ ipcMain.handle("fix-issue", async (_, issueKey: string) => {
       "--yolo",
       "--model",
       "gpt-4.1",
-      '"What time UTC is it now in Vietnam?"',
+      quotedPrompt,
       "--skip-git-repo-check",
     ];
     console.log(`Executing command: ${command} ${args.join(" ")}`);
+
     const process = spawn(command, args, {
       shell: true,
+      cwd: projectDir,
     });
+
     let result = "";
+
     process.stdout.on("data", (data) => {
-      console.log(`stdout: ${data}`);
       result += data;
     });
 
     process.stderr.on("data", (data) => {
-      console.error(`stderr: ${data}`);
       result += data;
     });
 
     process.on("close", (code) => {
+      console.log(`result: ${result}`);
       if (code === 0) {
         resolve(result);
       } else {

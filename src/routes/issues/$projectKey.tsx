@@ -43,11 +43,7 @@ type GroupedIssues = {
 };
 
 const STATUS_OPTIONS = ["OPEN", "CONFIRMED", "REOPENED", "RESOLVED", "CLOSED"];
-const TYPE_OPTIONS = [
-  "BUG",
-  "VULNERABILITY",
-  "CODE_SMELL",
-] as const;
+const TYPE_OPTIONS = ["BUG", "VULNERABILITY", "CODE_SMELL"] as const;
 
 function ProjectIssues() {
   const { projectKey } = Route.useParams();
@@ -70,8 +66,23 @@ function ProjectIssues() {
     "OPEN",
     "CONFIRMED",
   ]);
+  const [projectDir, setProjectDir] = useState<string | null>(null);
 
   const { showSnackbar } = useSnackbar();
+
+  const fetchProjectDirectory = async () => {
+    try {
+      const dir = await window.electronAPI.getProjectDirectory(projectKey);
+      setProjectDir(dir);
+    } catch (err) {
+      if (err instanceof Error) {
+        showSnackbar(
+          `Error fetching project directory: ${err.message}`,
+          "error"
+        );
+      }
+    }
+  };
 
   const fetchIssues = async () => {
     setLoading(true);
@@ -92,7 +103,6 @@ function ProjectIssues() {
         ...(statuses && { issueStatuses: statuses }),
       };
       const result = await window.electronAPI.listIssues(params);
-      console.log("Fetched issues:", result);
       setIssues(result.issues);
       setComponents(result.components);
       setTotal(result.paging.total);
@@ -110,7 +120,8 @@ function ProjectIssues() {
 
   useEffect(() => {
     fetchIssues();
-  }, [page, rowsPerPage, severity, type, statuses]);
+    fetchProjectDirectory();
+  }, [page, rowsPerPage, severity, type, statuses, projectKey]);
 
   const componentMap = useMemo(() => {
     return components.reduce(
@@ -153,16 +164,44 @@ function ProjectIssues() {
     );
   };
 
-  const handleFixIssue = async (issueKey: string) => {
+  const handleSelectDirectory = async () => {
     try {
-      const result = await window.electronAPI.fixIssue(issueKey);
+      const dir = await window.electronAPI.selectProjectDirectory();
+      if (dir) {
+        await window.electronAPI.setProjectDirectory(projectKey, dir);
+        setProjectDir(dir);
+        showSnackbar("Project directory updated successfully", "success");
+      }
+    } catch (err) {
+      if (err instanceof Error) {
+        showSnackbar(`Error selecting directory: ${err.message}`, "error");
+      }
+    }
+  };
+
+  const handleFixIssue = async (issue: SonarQubeIssue) => {
+    let dir = projectDir;
+    if (!dir) {
+      showSnackbar("Please select the project directory first.", "warning");
+      const selectedDir = await window.electronAPI.selectProjectDirectory();
+      if (selectedDir) {
+        await window.electronAPI.setProjectDirectory(projectKey, selectedDir);
+        setProjectDir(selectedDir);
+        dir = selectedDir;
+      } else {
+        return; // User cancelled directory selection
+      }
+    }
+
+    try {
+      const result = await window.electronAPI.fixIssue(issue);
       showSnackbar(result, "success");
     } catch (err) {
       if (err instanceof Error) {
         showSnackbar(`Error fixing issue: ${err.message}`, "error");
-        setError(err.message);
+        // setError(err.message);
       } else {
-        setError("An unknown error occurred while fixing issue.");
+        showSnackbar("An unknown error occurred while fixing issue.", "error");
       }
     }
   };
@@ -170,8 +209,28 @@ function ProjectIssues() {
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="h4" gutterBottom>
-        Issues for {projectKey}
+        Issues for <b>{projectKey}</b> project
       </Typography>
+
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid size={{ xs: 12, sm: "auto" }}>
+            <Typography variant="body1">
+              <strong>Project Directory:</strong>{" "}
+              {projectDir || "Not set. Please select a directory."}
+            </Typography>
+          </Grid>
+          <Grid size={{ xs: 12, sm: "auto" }}>
+            <Button
+              variant="contained"
+              onClick={handleSelectDirectory}
+              size="small"
+            >
+              {projectDir ? "Change Directory" : "Select Directory"}
+            </Button>
+          </Grid>
+        </Grid>
+      </Paper>
 
       <Box sx={{ mb: 2 }}>
         <Grid container spacing={2} alignItems="center">
@@ -309,7 +368,7 @@ function ProjectIssues() {
                               <Button
                                 variant="contained"
                                 size="small"
-                                onClick={() => handleFixIssue(issue.key)}
+                                onClick={() => handleFixIssue(issue)}
                               >
                                 Fix issue
                               </Button>
