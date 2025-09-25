@@ -19,6 +19,7 @@ export interface IElectronAPI extends ISonarQubeClient {
     projectKey: string,
     issueKey: string
   ) => Promise<string | null>;
+  openExternal: (url: string) => void;
 }
 
 declare global {

@@ -21,4 +21,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
     }),
   readIssueLog: (projectKey: string, issueKey: string) =>
     ipcRenderer.invoke("fix-issue:read-log", { projectKey, issueKey }),
+  openExternal: (url: string) => ipcRenderer.invoke("open-external", url),
 });

@@ -27,6 +27,7 @@ import {
   Grid,
   Chip,
   Stack,
+  Tooltip,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
@@ -45,7 +46,13 @@ type GroupedIssues = {
   [key: string]: SonarQubeIssue[];
 };
 
-const STATUS_OPTIONS = ["OPEN", "CONFIRMED", "REOPENED", "RESOLVED", "CLOSED"];
+const STATUS_OPTIONS = [
+  "OPEN",
+  "CONFIRMED",
+  "FALSE_POSITIVE",
+  "ACCEPTED",
+  "FIXED",
+];
 const TYPE_OPTIONS = ["BUG", "VULNERABILITY", "CODE_SMELL"] as const;
 
 function ProjectIssues() {
@@ -132,6 +139,19 @@ function ProjectIssues() {
       setLoading(false);
     }
   };
+
+  const handleOpenIssueInSonarQube = React.useCallback(
+    (issueKey: string) => {
+      const sonarqubeUrl = localStorage.getItem("sonarqubeUrl") || "";
+      if (!sonarqubeUrl) {
+        showSnackbar("Chưa cấu hình SonarQube URL!", "error");
+        return;
+      }
+      const url = `${sonarqubeUrl.replace(/\/$/, "")}/project/issues?open=${issueKey}&id=${projectKey}`;
+      window.electronAPI.openExternal(url);
+    },
+    [projectKey]
+  );
 
   useEffect(() => {
     fetchIssues();
@@ -372,7 +392,8 @@ function ProjectIssues() {
                         <TableRow>
                           <TableCell sx={{ width: "10%" }}>Severity</TableCell>
                           <TableCell sx={{ width: "10%" }}>Type</TableCell>
-                          <TableCell sx={{ width: "60%" }}>Message</TableCell>
+                          <TableCell sx={{ width: "10%" }}>Issue Key</TableCell>
+                          <TableCell sx={{ width: "50%" }}>Message</TableCell>
                           <TableCell sx={{ width: "5%" }}>Line</TableCell>
                           <TableCell sx={{ width: "15%" }}>Status</TableCell>
                           <TableCell sx={{ width: "10%" }}>Action</TableCell>
@@ -383,6 +404,26 @@ function ProjectIssues() {
                           <TableRow key={issue.key}>
                             <TableCell>{issue.severity}</TableCell>
                             <TableCell>{issue.type}</TableCell>
+                            <TableCell>
+                              <Tooltip title={issue.key}>
+                                <Button
+                                  variant="text"
+                                  color="primary"
+                                  onClick={() =>
+                                    handleOpenIssueInSonarQube(issue.key)
+                                  }
+                                  sx={{
+                                    textTransform: "none",
+                                    padding: 0,
+                                    minWidth: 0,
+                                    textDecoration: "underline",
+                                    fontFamily: "monospace",
+                                  }}
+                                >
+                                  {issue.key.slice(-8)}
+                                </Button>
+                              </Tooltip>
+                            </TableCell>
                             <TableCell
                               sx={{
                                 wordBreak: "break-word",
@@ -393,8 +434,14 @@ function ProjectIssues() {
                             </TableCell>
                             <TableCell>{issue.line}</TableCell>
                             <TableCell>
-                              <Stack direction="row" spacing={1} alignItems="center">
-                                <Typography variant="body2">{issue.status}</Typography>
+                              <Stack
+                                direction="row"
+                                spacing={1}
+                                alignItems="center"
+                              >
+                                <Typography variant="body2">
+                                  {issue.status}
+                                </Typography>
                                 {everFixedMap[issue.key] && (
                                   <Chip
                                     label="Fixed"
@@ -411,11 +458,15 @@ function ProjectIssues() {
                                   variant="contained"
                                   size="small"
                                   onClick={() => handleFixIssue(issue)}
-                                  disabled={rowLoading[issue.key]}
+                                  disabled={
+                                    rowLoading[issue.key] ||
+                                    issue.status == "RESOLVED" ||
+                                    issue.status == "CLOSED"
+                                  }
                                   startIcon={
                                     rowLoading[issue.key] ? (
                                       <CircularProgress
-                                        size={16}
+                                        size={14}
                                         color="inherit"
                                       />
                                     ) : null

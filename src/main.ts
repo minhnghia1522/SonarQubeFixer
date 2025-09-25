@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
@@ -143,11 +143,26 @@ ipcMain.handle("fix-issue", async (_, issue: SonarQubeIssue) => {
       //   Prompt.formatResponseIssueFixed(resultFixed as string),
       //   projectDir
       // );
-      resolve("Fixed "+ issue.key );
+      resolve("Fixed " + issue.key);
     } catch (error) {
       reject(error);
     }
   });
+});
+
+ipcMain.handle("open-external", async (_event, url: string) => {
+  if (typeof url !== "string") {
+    console.error("Invalid URL passed to open-external:", url);
+    throw new Error("Invalid URL");
+  }
+  try {
+    await shell.openExternal(url);
+
+    return true;
+  } catch (err) {
+    console.error("Failed to open external URL:", url, err);
+    throw err;
+  }
 });
 
 const createWindow = () => {
