@@ -92,3 +92,4 @@ typings/
 out/
 
 fix-issue-log/
+sonar-project.properties
