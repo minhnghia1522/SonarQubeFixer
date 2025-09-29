@@ -10,7 +10,6 @@ Bối cảnh: Trong quá trình kiểm soát chất lượng mã bằng SonarQub
 
 Phạm vi: hiện tại tập trung trải nghiệm trên Windows. Dev environment khuyến nghị Node.js 22 LTS, quản lý gói bằng npm. Kiến trúc React + Vite chạy trong Electron, định tuyến bằng TanStack Router.
 
-Một số màn hình chính được định nghĩa tại: [src/routes/setup.tsx](src/routes/setup.tsx), [src/routes/projects.tsx](src/routes/projects.tsx), [src/routes/issues/$projectKey.tsx](src/routes/issues/$projectKey.tsx). Luồng batch fix tham khảo tại: [src/routes/issues/hooks/useBatchFix.ts](src/routes/issues/hooks/useBatchFix.ts) và Log viewer: [src/components/issues/LogViewerDialog.tsx](src/components/issues/LogViewerDialog.tsx). Cấu hình và validate được mô hình hóa bởi Zod tại: [src/schemas/settings.ts](src/schemas/settings.ts) và persisted bằng Electron Store: [src/storage/store.ts](src/storage/store.ts).
 
 Sơ đồ luồng sử dụng
 
