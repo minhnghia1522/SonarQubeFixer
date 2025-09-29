@@ -24,7 +24,7 @@ type ValidationSchema = z.infer<typeof validationSchema>;
 
 const SonarQubeSettingSetupForm = () => {
   const { showSnackbar } = useSnackbar();
-  const [showOpenaiApiKey, setShowOpenaiApiKey] = React.useState(false);
+  // const [showOpenaiApiKey, setShowOpenaiApiKey] = React.useState(false);
   const [showSonarqubeToken, setShowSonarqubeToken] = React.useState(false);
 
   const methods = useForm<ValidationSchema>({
@@ -107,7 +107,7 @@ const SonarQubeSettingSetupForm = () => {
             label="SonarQube Organization"
             id="sonarqubeOrganization"
           />
-          <FormTextField
+          {/* <FormTextField
             margin="normal"
             fullWidth
             name="openaiApiKey"
@@ -128,7 +128,7 @@ const SonarQubeSettingSetupForm = () => {
                 </InputAdornment>
               ),
             }}
-          />
+          /> */}
           <Button
             type="submit"
             fullWidth
