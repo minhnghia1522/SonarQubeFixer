@@ -1,14 +1,10 @@
 # Giới thiệu chung
 
-SonarQube Fixer là ứng dụng desktop xây dựng trên Electron giúp nhóm phát triển kết nối tới SonarQube, duyệt issues theo dự án, lọc theo tiêu chí và hỗ trợ thao tác hàng loạt để rút ngắn thời gian xử lý nợ kỹ thuật. Ứng dụng tập trung cho Windows, trải nghiệm native, đơn giản và an toàn.
+SonarQubeFixer là ứng dụng desktop xây dựng trên Electron giúp nhóm phát triển kết nối tới SonarQube, duyệt issues theo dự án, lọc theo tiêu chí và hỗ trợ thao tác hàng loạt để rút ngắn thời gian xử lý nợ kỹ thuật. Ứng dụng tập trung cho Windows, trải nghiệm native, đơn giản và an toàn.
 
 # Giới thiệu chi tiết
 
-Bối cảnh: khi chất lượng mã được kiểm soát bởi SonarQube, việc xem và sửa từng issue trong trình duyệt tốn nhiều thời gian, khó tổng hợp và khó phối hợp sửa hàng loạt. SonarQube Fixer ra đời để:
-- Kết nối nhanh tới server SonarQube bằng URL và Token cá nhân.
-- Đồng bộ danh sách dự án và issues liên quan.
-- Cho phép lọc, chọn nhiều issues và hỗ trợ batch fix, tích hợp OpenAI thông qua Codex CLI để đề xuất và áp dụng các giải pháp sửa lỗi thông minh.
-- Ghi nhận nhật ký xử lý để theo dõi, kiểm soát tác động.
+Bối cảnh: Trong quá trình kiểm soát chất lượng mã bằng SonarQube, việc xử lý từng issue thường đòi hỏi lập trình viên phải mất nhiều thời gian tìm hiểu nguyên nhân bug, tra cứu giải pháp và thao tác thủ công trên giao diện web, gây khó khăn trong việc tổng hợp, phối hợp và sửa hàng loạt lỗi. SonarQubeFixer được phát triển nhằm giải quyết triệt để vấn đề này bằng cách tự động kết nối tới server SonarQube qua URL và Token cá nhân, đồng bộ hóa danh sách dự án cùng các issue liên quan, cho phép lọc và lựa chọn nhiều issue để batch fix, đồng thời tích hợp OpenAI qua Codex CLI để đề xuất và áp dụng các giải pháp sửa lỗi thông minh, giúp tiết kiệm thời gian, nâng cao hiệu quả xử lý và kiểm soát toàn bộ quá trình qua hệ thống nhật ký chi tiết.
 
 Đối tượng sử dụng: lập trình viên, leader, và QA cần rà soát chất lượng mã, chuẩn hóa phong cách, tối ưu code smell và giảm nợ kỹ thuật.
 
@@ -110,10 +106,10 @@ Artifact đầu ra được đặt trong thư mục out/, ví dụ: out/electron
 
 # Hướng dẫn sử dụng cơ bản
 
-1) Mở ứng dụng và truy cập màn hình Setup. Nhập SonarQube Server URL, Token cá nhân và OpenAI API Key (nếu có), sau đó Lưu. Màn hình: [images/setup-page.png](images/setup-page.png).
-2) Chuyển tới Projects, tải danh sách dự án, chọn dự án cần làm việc và liên kết thư mục mã nguồn cục bộ. Màn hình: [images/project-page.png](images/project-page.png).
-3) Vào Issues của dự án: tải dữ liệu, thiết lập bộ lọc, chọn nhiều issues.
-4) Nhấn Batch Fix để bắt đầu quá trình xử lý hàng loạt. Theo dõi tiến trình tại thanh trạng thái và hộp thoại log. Tham chiếu thực thi: [src/routes/issues/hooks/useBatchFix.ts](src/routes/issues/hooks/useBatchFix.ts), giao diện log: [src/components/issues/LogViewerDialog.tsx](src/components/issues/LogViewerDialog.tsx).
+1) Mở ứng dụng và truy cập màn hình Setup. Nhập SonarQube Server URL sau đó Lưu.
+2) Chuyển tới Projects, tải danh sách dự án, chọn dự án cần làm việc và liên kết thư mục mã nguồn cục bộ.
+3) Vào Issues của dự án: tải dữ liệu, thiết lập bộ lọc, chọn một hoặc nhiều issues.
+4) Nhấn Fix để bắt đầu quá trình xử lý. Theo dõi tiến trình tại thanh trạng thái và hộp thoại log.
 5) Rà soát thay đổi trong IDE của bạn và chạy lại phân tích SonarQube nếu cần.
 
 # Công nghệ sử dụng
@@ -124,7 +120,7 @@ Artifact đầu ra được đặt trong thư mục out/, ví dụ: out/electron
 - React Hook Form + Zod cho form và validate.
 - electron-store để lưu cấu hình cục bộ.
 - sonarqube-web-api-client để truy vấn dữ liệu SonarQube.
-- **OpenAI GPT-4.1** cho tính năng đề xuất sửa lỗi thông minh.
+- [Codex CLI](https://developers.openai.com/codex/cli/).
 - ESLint cho kiểm tra chất lượng mã. Script: xem [package.json](package.json), lệnh lint: npm run lint.
 
 # Tác giả
