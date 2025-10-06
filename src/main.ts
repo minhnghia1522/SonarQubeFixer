@@ -131,7 +131,7 @@ ipcMain.handle("fix-issue", async (_, issue: SonarQubeIssue) => {
     try {
       const resultFixed = await codexExecute(prompt, projectDir);
 
-      // Ghi log sử dụng utils, path là từ thư mục ứng dụng
+      // Write log using utils, path is from the application directory
       try {
         const logRelativePath = path.join(issue.project, issue.key, "log.txt");
         writeLog(logRelativePath, String(resultFixed), "append");

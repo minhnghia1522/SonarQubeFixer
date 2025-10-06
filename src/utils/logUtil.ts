@@ -2,9 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 
 /**
- * Ghi log vào file theo đường dẫn tuyệt đối từ thư mục ứng dụng (process.cwd())
- * @param relativePath Đường dẫn tương đối từ thư mục ứng dụng, ví dụ: "keyproject/issuekey/log.txt"
- * @param content Nội dung log cần ghi
+ * Writes a log to a file using an absolute path from the application directory (process.cwd())
+ * @param relativePath The relative path from the application directory, e.g., "keyproject/issuekey/log.txt"
+ * @param content The log content to write
  * @param mode "append" (mặc định) hoặc "overwrite"
  */
 export function writeLog(
@@ -13,7 +13,7 @@ export function writeLog(
   mode: "append" | "overwrite" = "append"
 ) {
   const appDir = process.cwd();
-  const logPath = path.join(appDir, "fix-issue-log/"+relativePath);
+  const logPath = path.join(appDir, "fix-issue-log/" + relativePath);
   const logDir = path.dirname(logPath);
 
   if (!fs.existsSync(logDir)) {
@@ -28,9 +28,9 @@ export function writeLog(
 }
 
 /**
- * Đọc nội dung file log theo đường dẫn tương đối từ thư mục ứng dụng
- * @param relativePath Đường dẫn tương đối từ thư mục ứng dụng
- * @returns Nội dung file hoặc null nếu không tồn tại
+ * Reads the content of a log file from a relative path within the application directory
+ * @param relativePath The relative path from the application directory
+ * @returns The file content or null if it does not exist
  */
 export function readLog(relativePath: string): string | null {
   const appDir = process.cwd();
@@ -46,9 +46,9 @@ export function readLog(relativePath: string): string | null {
 }
 
 /**
- * Xóa file log theo đường dẫn tương đối từ thư mục ứng dụng
- * @param relativePath Đường dẫn tương đối từ thư mục ứng dụng
- * @returns true nếu xóa thành công, false nếu không tồn tại hoặc lỗi
+ * Deletes a log file from a relative path within the application directory
+ * @param relativePath The relative path from the application directory
+ * @returns true if deletion is successful, false if the file does not exist or an error occurs
  */
 export function deleteLog(relativePath: string): boolean {
   const appDir = process.cwd();

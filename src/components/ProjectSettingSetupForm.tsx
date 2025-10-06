@@ -48,10 +48,10 @@ const SonarQubeSettingSetupForm = () => {
         localStorage.setItem(key, toStore);
       });
       window.electronAPI.updateSonarQubeConfig(data);
-      showSnackbar("Lưu cài đặt thành công!");
+      showSnackbar("Settings saved successfully!");
     } catch (err) {
       console.error(`Error saving to localStorage:`, err);
-      showSnackbar("Lưu cài đặt thất bại!", "error");
+      showSnackbar("Failed to save settings!", "error");
     }
   };
 
