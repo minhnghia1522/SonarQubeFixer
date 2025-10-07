@@ -6,13 +6,32 @@ import {
   SonarQubeIssuesResult,
   SonarQubeProjectsResult,
 } from "./types";
-const { SonarQubeClient: WebApiClient } = require("sonarqube-web-api-client");
+
+type SonarQubeClientStatic = typeof import("sonarqube-web-api-client")["SonarQubeClient"];
+type SonarQubeClientInstance = import("sonarqube-web-api-client").SonarQubeClient;
+
+let WebApiClient: SonarQubeClientStatic;
+
+try {
+  WebApiClient = require("sonarqube-web-api-client").SonarQubeClient as SonarQubeClientStatic;
+} catch (error) {
+  console.error(
+    "[SonarQubeClient] Failed to require 'sonarqube-web-api-client'.",
+    {
+      error,
+      modulePaths: module.paths,
+      requireMainPaths: require.main?.paths,
+      cwd: process.cwd(),
+    }
+  );
+  throw error;
+}
 
 const DEFAULT_SONARQUBE_URL = "https://sonarcloud.io";
 type OptionalOrganization = string | null;
 
 export class SonarQubeClient implements ISonarQubeClient {
-  private readonly webApiClient: typeof WebApiClient;
+  private readonly webApiClient: SonarQubeClientInstance;
   private readonly organization: OptionalOrganization;
 
   // Domain modules

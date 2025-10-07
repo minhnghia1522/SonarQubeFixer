@@ -1,3 +1,6 @@
+import path from "node:path";
+import { access, cp, mkdir, rm } from "node:fs/promises";
+import { constants as fsConstants } from "node:fs";
 import type { ForgeConfig } from "@electron-forge/shared-types";
 import { MakerSquirrel } from "@electron-forge/maker-squirrel";
 import { MakerDMG } from "@electron-forge/maker-dmg";
@@ -8,9 +11,55 @@ import { VitePlugin } from "@electron-forge/plugin-vite";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
 
+const projectRoot = path.resolve(__dirname);
+const runtimeDeps = ["sonarqube-web-api-client"];
+
+async function pathExists(target: string): Promise<boolean> {
+  try {
+    await access(target, fsConstants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function ensureRuntimeDependencies(buildPath: string): Promise<void> {
+  const buildNodeModules = path.join(buildPath, "node_modules");
+  await mkdir(buildNodeModules, { recursive: true });
+
+  for (const dependency of runtimeDeps) {
+    const source = path.join(projectRoot, "node_modules", dependency);
+
+    if (!(await pathExists(source))) {
+      console.warn(
+        `[forge-hooks] Bỏ qua copy dependency "${dependency}" vì không tìm thấy nguồn tại ${source}.`
+      );
+      continue;
+    }
+
+    const destination = path.join(buildNodeModules, dependency);
+
+    try {
+      await rm(destination, { recursive: true, force: true });
+      await cp(source, destination, { recursive: true, dereference: true });
+      console.info(
+        `[forge-hooks] Đã copy dependency "${dependency}" vào ${destination}.`
+      );
+    } catch (error) {
+      console.error(
+        `[forge-hooks] Lỗi khi copy dependency "${dependency}" vào bundle.`,
+        error
+      );
+      throw error;
+    }
+  }
+}
+
 const config: ForgeConfig = {
   packagerConfig: {
-    asar: true,
+    asar: {
+      unpackDir: "node_modules",
+    },
   },
   rebuildConfig: {},
   makers: [
@@ -55,6 +104,11 @@ const config: ForgeConfig = {
       [FuseV1Options.OnlyLoadAppFromAsar]: true,
     }),
   ],
+  hooks: {
+    packageAfterPrune: async (_config, buildPath) => {
+      await ensureRuntimeDependencies(buildPath);
+    },
+  },
 };
 
 export default config;
