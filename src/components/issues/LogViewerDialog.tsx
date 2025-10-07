@@ -58,7 +58,7 @@ export function LogViewerDialog({
       <DialogTitle>
         Log for Issue: {issueKey}
         <IconButton
-          aria-label="close"
+          aria-label="Close"
           onClick={onClose}
           sx={{
             position: "absolute",

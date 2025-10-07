@@ -31,7 +31,7 @@ export function useIssueActions(
     (issueKey: string) => {
       const urlBase = getSonarQubeUrl();
       if (!urlBase) {
-        showSnackbar('Chưa cấu hình SonarQube URL!', 'error');
+        showSnackbar('SonarQube URL is not configured!', 'error');
         return;
       }
       const url = `${urlBase}/project/issues?open=${issueKey}&id=${projectKey}`;

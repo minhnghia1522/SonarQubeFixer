@@ -30,7 +30,7 @@ function ProjectsPage() {
     } catch (err) {
       if (err instanceof Error) {
         if (err.message.includes("Insufficient privileges")) {
-          showSnackbar("Token không có quyền lấy danh sách project!", "error");
+          showSnackbar("Token does not have permission to fetch the project list!", "error");
         }
         console.log("Error fetching projects:", err);
         setError(err.message);
@@ -56,7 +56,7 @@ function ProjectsPage() {
 
       {error && (
         <Typography color="error">
-          Error: {error}. Please check your token and permissions.
+          Could not connect: {error}. Please check your token and permissions.
         </Typography>
       )}
 
