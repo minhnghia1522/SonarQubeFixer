@@ -27,7 +27,7 @@ export function IssuesSelectionBar(props: IssuesSelectionBarProps) {
       <Box>
         <FormControlLabel
           control={<Checkbox checked={selectAll} onChange={onToggleSelectAll} />}
-          label={`Select Page (${selectAllAcrossPages ? total : selectedCount} selected)`}
+          label={`Select Page (${selectedCount} of ${total} selected)`}
         />
       </Box>
       <Button variant="contained" onClick={onFixSelected} disabled={disabled}>

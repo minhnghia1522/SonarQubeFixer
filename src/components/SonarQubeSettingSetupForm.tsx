@@ -89,7 +89,7 @@ const SonarQubeSettingSetupForm = () => {
               endAdornment: (
                 <InputAdornment position="end">
                   <IconButton
-                    aria-label="toggle sonarqube token visibility"
+                    aria-label="Toggle SonarQube Token Visibility"
                     onClick={() => setShowSonarqubeToken(!showSonarqubeToken)}
                     onMouseDown={(event) => event.preventDefault()}
                     edge="end"

@@ -35,7 +35,7 @@ export function IssueAccordion(props: IssueAccordionProps) {
     everFixedMap,
   } = props;
 
-  const title = `${component?.path || componentKey} (${issues.length} issues)`;
+  const title = `${component?.path || componentKey} (${issues.length} issues found)`;
 
   return (
     <Accordion defaultExpanded>
